@@ -13,6 +13,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
+    private static final String APP_URL = "https://pitch-max--nousheenqueen1.replit.app";
+    private static final String APP_HOST = "pitch-max--nousheenqueen1.replit.app";
     private WebView webView;
 
     @Override
@@ -30,21 +32,27 @@ public class MainActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
 
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
+                String host = uri.getHost();
                 String scheme = uri.getScheme();
-                if ("file".equalsIgnoreCase(scheme)) {
+
+                if (("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme))
+                        && APP_HOST.equalsIgnoreCase(host)) {
                     return false;
                 }
+
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, uri));
                 } catch (ActivityNotFoundException ignored) {
@@ -54,7 +62,7 @@ public class MainActivity extends Activity {
         });
 
         if (savedInstanceState == null) {
-            webView.loadUrl("file:///android_asset/index.html");
+            webView.loadUrl(APP_URL);
         } else {
             webView.restoreState(savedInstanceState);
         }

@@ -13,8 +13,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
-    private static final String APP_URL = "https://pitch-max--nousheenqueen1.replit.app";
-    private static final String APP_HOST = "pitch-max--nousheenqueen1.replit.app";
+    private static final String LOCAL_APP = "file:///android_asset/index.html";
     private WebView webView;
 
     @Override
@@ -32,8 +31,8 @@ public class MainActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(false);
-        settings.setAllowContentAccess(false);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
@@ -45,11 +44,9 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                String host = uri.getHost();
                 String scheme = uri.getScheme();
 
-                if (("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme))
-                        && APP_HOST.equalsIgnoreCase(host)) {
+                if ("file".equalsIgnoreCase(scheme)) {
                     return false;
                 }
 
@@ -62,7 +59,7 @@ public class MainActivity extends Activity {
         });
 
         if (savedInstanceState == null) {
-            webView.loadUrl(APP_URL);
+            webView.loadUrl(LOCAL_APP);
         } else {
             webView.restoreState(savedInstanceState);
         }

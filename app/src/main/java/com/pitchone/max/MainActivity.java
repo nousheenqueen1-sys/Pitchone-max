@@ -6,14 +6,21 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Base64;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPInputStream;
+
 public class MainActivity extends Activity {
-    private static final String LOCAL_APP = "file:///android_asset/index.html";
+    private static final String LOCAL_ORIGIN = "https://pitchone.local/";
     private WebView webView;
 
     @Override
@@ -31,8 +38,8 @@ public class MainActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
@@ -44,9 +51,11 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
+                String host = uri.getHost();
                 String scheme = uri.getScheme();
 
-                if ("file".equalsIgnoreCase(scheme)) {
+                if (("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme))
+                        && "pitchone.local".equalsIgnoreCase(host)) {
                     return false;
                 }
 
@@ -59,9 +68,44 @@ public class MainActivity extends Activity {
         });
 
         if (savedInstanceState == null) {
-            webView.loadUrl(LOCAL_APP);
+            loadBundledApp();
         } else {
             webView.restoreState(savedInstanceState);
+        }
+    }
+
+    private void loadBundledApp() {
+        try {
+            StringBuilder encoded = new StringBuilder();
+            for (int i = 0; i < 6; i++) {
+                InputStream in = getAssets().open("p" + i + ".txt");
+                ByteArrayOutputStream part = new ByteArrayOutputStream();
+                byte[] buffer = new byte[4096];
+                int n;
+                while ((n = in.read(buffer)) != -1) {
+                    part.write(buffer, 0, n);
+                }
+                in.close();
+                encoded.append(part.toString("UTF-8"));
+            }
+
+            byte[] gzipBytes = Base64.decode(encoded.toString(), Base64.DEFAULT);
+            GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(gzipBytes));
+            ByteArrayOutputStream htmlBytes = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int n;
+            while ((n = gzip.read(buffer)) != -1) {
+                htmlBytes.write(buffer, 0, n);
+            }
+            gzip.close();
+
+            String html = new String(htmlBytes.toByteArray(), StandardCharsets.UTF_8);
+            webView.loadDataWithBaseURL(LOCAL_ORIGIN, html, "text/html", "UTF-8", null);
+        } catch (Exception e) {
+            String safeMessage = e.getMessage() == null ? "Unknown startup error" : e.getMessage().replace("<", "&lt;").replace(">", "&gt;");
+            String errorHtml = "<html><body style='background:#050909;color:#fff;font-family:sans-serif;padding:24px'>"
+                    + "<h2>PITCHONE MAX</h2><p>The offline app could not start.</p><p>" + safeMessage + "</p></body></html>";
+            webView.loadDataWithBaseURL(LOCAL_ORIGIN, errorHtml, "text/html", "UTF-8", null);
         }
     }
 
